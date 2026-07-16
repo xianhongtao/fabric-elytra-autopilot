@@ -178,6 +178,14 @@ public class Hud {
 
             // Fly-to / landing lines (you can also gate these with new config flags if you
             // like)
+            if (ModConfig.INSTANCE.strategyMode && autoFlight && !isLanding && !forceLand) {
+                lines.add(
+                        Component
+                                .translatable("text.elytraautopilot.hud.flightPhase",
+                                        Component.translatable(strategyPhase.translationKey()))
+                                .withStyle(ChatFormatting.GOLD));
+            }
+
             if (isflytoActive && !forceLand) {
                 if (ModConfig.INSTANCE.showFlyTo) {
                     lines.add(Component.translatable("text.elytraautopilot.flyto", argXpos, argZpos)
