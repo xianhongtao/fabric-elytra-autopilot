@@ -32,9 +32,9 @@ public final class FlightStrategy {
      * Loads a strategy CSV from the mod's classpath resources.
      *
      * @param resourceName
-     *                      the CSV file name (e.g. {@code "climb.csv"})
+     *            the CSV file name (e.g. {@code "climb.csv"})
      * @param expectedTicks
-     *                      the expected number of data rows (period length)
+     *            the expected number of data rows (period length)
      * @return the loaded strategy, or {@code null} if the resource is missing or
      *         malformed (an error is logged)
      */
