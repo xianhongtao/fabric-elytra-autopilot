@@ -73,9 +73,9 @@ public class ElytraAutoPilot implements ClientModInitializer {
     private static FlightStrategy climbStrategy;
     private static FlightStrategy cruiseStrategy;
     public static FlightPhase strategyPhase = FlightPhase.CLIMB;
-    private static int climbTick = 0;
-    private static int cruiseTick = 0;
-    private static boolean strategyActive = false;
+    public static int climbTick = 0;
+    public static int cruiseTick = 0;
+    public static boolean strategyActive = false;
 
     @Override
     public void onInitializeClient() {
