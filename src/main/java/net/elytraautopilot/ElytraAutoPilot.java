@@ -494,7 +494,7 @@ public class ElytraAutoPilot implements ClientModInitializer {
 
     private static boolean canRestockElytra(LocalPlayer player) {
         var result = getElytraIndex(player);
-        return result != -1;
+        return result != -100;
     }
 
     private void computeVelocity() {
