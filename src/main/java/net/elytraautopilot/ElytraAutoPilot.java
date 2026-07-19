@@ -2,6 +2,8 @@ package net.elytraautopilot;
 
 import net.elytraautopilot.commands.ClientCommands;
 import net.elytraautopilot.config.ModConfig;
+import net.elytraautopilot.strategy.FlightPhase;
+import net.elytraautopilot.strategy.FlightStrategy;
 import net.elytraautopilot.utils.ElytraManager;
 import net.elytraautopilot.utils.FreeCameraState;
 import net.elytraautopilot.utils.Hud;
@@ -67,9 +69,25 @@ public class ElytraAutoPilot implements ClientModInitializer {
     public static double distance = 0f;
     public static double groundheight;
 
+    // Strategy mode fields
+    private static FlightStrategy climbStrategy;
+    private static FlightStrategy cruiseStrategy;
+    public static FlightPhase strategyPhase = FlightPhase.CLIMB;
+    public static int climbTick = 0;
+    public static int cruiseTick = 0;
+    public static boolean strategyActive = false;
+
     @Override
     public void onInitializeClient() {
         minecraftClient = Minecraft.getInstance();
+
+        // Load precomputed pitch strategies
+        climbStrategy = FlightStrategy.loadResource("climb.csv", 254);
+        cruiseStrategy = FlightStrategy.loadResource("cruise.csv", 357);
+        if (climbStrategy == null || cruiseStrategy == null) {
+            LOGGER.warn("Strategy mode unavailable — falling back to classic mode. "
+                    + "Check that strategy CSV resources are present in the mod JAR.");
+        }
 
         KeyBindings.init();
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MODID, "hud"), (context, tickCounter) -> {
@@ -165,6 +183,14 @@ public class ElytraAutoPilot implements ClientModInitializer {
                 minecraftClient.options.keyJump.setDown(false);
                 autoFlight = true;
                 pitchMod = 3f;
+                // Initialize strategy phase based on current altitude
+                if (ModConfig.INSTANCE.strategyMode && climbStrategy != null && cruiseStrategy != null) {
+                    strategyPhase = player.position().y >= ModConfig.INSTANCE.cruiseAltitudeMax
+                            ? FlightPhase.CRUISE
+                            : FlightPhase.CLIMB;
+                    climbTick = 0;
+                    cruiseTick = 0;
+                }
                 FreeCameraState.init();
                 if (isChained) {
                     isflytoActive = true;
@@ -283,8 +309,9 @@ public class ElytraAutoPilot implements ClientModInitializer {
                     }
                 }
             }
-            // Flight pitch behavior
-            if (pullUp && !(isLanding || forceLand)) {
+            // Flight pitch behavior (classic mode only — strategy mode controls
+            // pitch in onClientTick at 20 TPS)
+            if (pullUp && !(isLanding || forceLand) && !strategyActive) {
                 player.setXRot((float) (pitch - ModConfig.INSTANCE.pullUpSpeed * speedMod));
                 pitch = player.getXRot();
                 if (pitch <= ModConfig.INSTANCE.pullUpAngle) {
@@ -293,7 +320,7 @@ public class ElytraAutoPilot implements ClientModInitializer {
                 // Powered flight behavior
                 minecraftClient.options.keyUse.setDown(ModConfig.INSTANCE.poweredFlight && currentVelocity < 1.25f);
             }
-            if (pullDown && !(isLanding || forceLand)) {
+            if (pullDown && !(isLanding || forceLand) && !strategyActive) {
                 player.setXRot((float) (pitch + ModConfig.INSTANCE.pullDownSpeed * pitchMod * speedMod));
                 pitch = player.getXRot();
                 if (pitch >= ModConfig.INSTANCE.pullDownAngle) {
@@ -311,6 +338,7 @@ public class ElytraAutoPilot implements ClientModInitializer {
             pullUp = false;
             pitchMod = 1f;
             pullDown = false;
+            strategyActive = false;
             FreeCameraState.reset();
         }
     }
@@ -340,6 +368,9 @@ public class ElytraAutoPilot implements ClientModInitializer {
             calculateHud = false;
             autoFlight = false;
             groundheight = -1f;
+            climbTick = 0;
+            cruiseTick = 0;
+            strategyActive = false;
         }
 
         double altitude;
@@ -366,31 +397,71 @@ public class ElytraAutoPilot implements ClientModInitializer {
                 return;
             }
 
-            if (isDescending) {
-                pullUp = false;
-                pullDown = true;
-                if (altitude > ModConfig.INSTANCE.maxHeight) {
-                    velHigh = 0.3f;
-                } else if (altitude > ModConfig.INSTANCE.maxHeight - 10) {
-                    velLow = 0.28475f;
+            if (ModConfig.INSTANCE.strategyMode && climbStrategy != null && cruiseStrategy != null && !onTakeoff
+                    && !isLanding && !forceLand) {
+                // Strategy mode: altitude-based phase switching + precomputed pitch waveform
+                strategyActive = true;
+
+                // Hysteresis phase switching based on absolute altitude
+                if (strategyPhase == FlightPhase.CLIMB && altitude >= ModConfig.INSTANCE.cruiseAltitudeMax) {
+                    strategyPhase = FlightPhase.CRUISE;
+                    cruiseTick = 0;
+                } else if (strategyPhase == FlightPhase.CRUISE && altitude <= ModConfig.INSTANCE.cruiseAltitudeMin) {
+                    strategyPhase = FlightPhase.CLIMB;
+                    climbTick = 0;
                 }
-                velMod = Math.max(velHigh, velLow);
-                if (currentVelocity >= ModConfig.INSTANCE.pullDownMaxVelocity + velMod) {
-                    isDescending = false;
-                    pullDown = false;
-                    pullUp = true;
-                    pitchMod = 1f;
+
+                // Apply precomputed pitch for the current phase
+                FlightStrategy strategy;
+                int tick;
+                if (strategyPhase == FlightPhase.CLIMB) {
+                    strategy = climbStrategy;
+                    tick = climbTick;
+                } else {
+                    strategy = cruiseStrategy;
+                    tick = cruiseTick;
                 }
+                double angle = strategy.angleAt(tick);
+                player.setXRot((float) Math.max(-90.0, Math.min(90.0, -angle)));
+
+                // Advance the waveform tick index
+                if (strategyPhase == FlightPhase.CLIMB) {
+                    climbTick = strategy.nextTick(climbTick);
+                } else {
+                    cruiseTick = strategy.nextTick(cruiseTick);
+                }
+
+                // Powered flight (same behavior as classic mode)
+                minecraftClient.options.keyUse.setDown(ModConfig.INSTANCE.poweredFlight && currentVelocity < 1.25f);
             } else {
-                velHigh = 0f;
-                velLow = 0f;
-                pullUp = true;
-                pullDown = false;
-                if (currentVelocity <= ModConfig.INSTANCE.pullUpMinVelocity
-                        || altitude > ModConfig.INSTANCE.maxHeight - 10) {
-                    isDescending = true;
-                    pullDown = true;
+                // Classic mode: velocity-thresholded hysteresis controller
+                strategyActive = false;
+                if (isDescending) {
                     pullUp = false;
+                    pullDown = true;
+                    if (altitude > ModConfig.INSTANCE.maxHeight) {
+                        velHigh = 0.3f;
+                    } else if (altitude > ModConfig.INSTANCE.maxHeight - 10) {
+                        velLow = 0.28475f;
+                    }
+                    velMod = Math.max(velHigh, velLow);
+                    if (currentVelocity >= ModConfig.INSTANCE.pullDownMaxVelocity + velMod) {
+                        isDescending = false;
+                        pullDown = false;
+                        pullUp = true;
+                        pitchMod = 1f;
+                    }
+                } else {
+                    velHigh = 0f;
+                    velLow = 0f;
+                    pullUp = true;
+                    pullDown = false;
+                    if (currentVelocity <= ModConfig.INSTANCE.pullUpMinVelocity
+                            || altitude > ModConfig.INSTANCE.maxHeight - 10) {
+                        isDescending = true;
+                        pullDown = true;
+                        pullUp = false;
+                    }
                 }
             }
         }
@@ -429,6 +500,14 @@ public class ElytraAutoPilot implements ClientModInitializer {
                         isDescending = true;
                         pitchMod = 3f;
                         FreeCameraState.init();
+                        // Initialize strategy phase based on current altitude
+                        if (ModConfig.INSTANCE.strategyMode && climbStrategy != null && cruiseStrategy != null) {
+                            strategyPhase = player.position().y >= ModConfig.INSTANCE.cruiseAltitudeMax
+                                    ? FlightPhase.CRUISE
+                                    : FlightPhase.CLIMB;
+                            climbTick = 0;
+                            cruiseTick = 0;
+                        }
                     }
                 }
             } else {

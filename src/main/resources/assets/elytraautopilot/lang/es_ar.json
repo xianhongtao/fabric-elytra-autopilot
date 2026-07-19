@@ -60,6 +60,13 @@
   "config.elytraautopilot.flightprofile.fireworkHotswap.desc": "Repone cohetes automáticamente",
   "config.elytraautopilot.flightprofile.emergencyLand": "Aterrizaje de emergencia",
   "config.elytraautopilot.flightprofile.emergencyLand.desc": "Habilita el modo de aterrizaje de emergencia",
+  "config.elytraautopilot.strategy": "Modo Estrategia",
+  "config.elytraautopilot.strategy.strategyMode": "Modo de vuelo por estrategia",
+  "config.elytraautopilot.strategy.strategyMode.desc": "Usar patrones de pitch precalculados en lugar del controlador clasico de histéresis. Las fases de ascenso y crucero cambian automaticamente segun la altitud.",
+  "config.elytraautopilot.strategy.cruiseAltitudeMin": "Altitud minima de crucero",
+  "config.elytraautopilot.strategy.cruiseAltitudeMin.desc": "Por debajo de esta altitud se usa la estrategia de ascenso. Debe estar lo suficientemente alto sobre el terreno para acomodar el descenso de ~74 bloques por ciclo.",
+  "config.elytraautopilot.strategy.cruiseAltitudeMax": "Altitud maxima de crucero",
+  "config.elytraautopilot.strategy.cruiseAltitudeMax.desc": "Por encima de esta altitud se usa la estrategia de crucero. La diferencia entre max y min debe superar 134 bloques para evitar cambios frecuentes.",
   "config.elytraautopilot.advanced": "Avanzado",
   "config.elytraautopilot.advanced.groundCheckTicks": "Tick de checkeo por suelo",
   "config.elytraautopilot.advanced.groundCheckTicks.desc": "Tick antes de checar por el suelo",
@@ -105,5 +112,8 @@
   "text.elytraautopilot.hud.autoLand": "Auto aterrizaje : ",
   "text.elytraautopilot.hud.enabled": "Activado",
   "text.elytraautopilot.hud.disabled": "Desactivado",
-  "text.elytraautopilot.hud.landing": "Aterrizando..."
+  "text.elytraautopilot.hud.landing": "Aterrizando...",
+  "text.elytraautopilot.phase.climb": "Ascenso",
+  "text.elytraautopilot.phase.cruise": "Crucero",
+  "text.elytraautopilot.hud.flightPhase": "Fase de vuelo: %s"
 }

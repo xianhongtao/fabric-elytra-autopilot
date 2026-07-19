@@ -68,6 +68,13 @@
   "config.elytraautopilot.flightprofile.cameraDecoupled.desc": "Decouple camera from flight control during autopilot, allowing free look",
   "config.elytraautopilot.flightprofile.elytraReplaceDurability": "Elytra replace at durability",
   "config.elytraautopilot.flightprofile.elytraReplaceDurability.desc": "At which durability an elytra is considered unusable and will either be replaced or forcelanded if enabled",
+  "config.elytraautopilot.strategy": "Strategy Mode",
+  "config.elytraautopilot.strategy.strategyMode": "Strategy Flight Mode",
+  "config.elytraautopilot.strategy.strategyMode.desc": "Use precomputed pitch waveforms instead of the classic velocity-hysteresis controller. Climb and cruise phases switch automatically based on altitude.",
+  "config.elytraautopilot.strategy.cruiseAltitudeMin": "Cruise Altitude Min",
+  "config.elytraautopilot.strategy.cruiseAltitudeMin.desc": "Below this altitude the climb strategy is used to regain height. Must be far enough above terrain to accommodate the ~74-block dive per cycle.",
+  "config.elytraautopilot.strategy.cruiseAltitudeMax": "Cruise Altitude Max",
+  "config.elytraautopilot.strategy.cruiseAltitudeMax.desc": "Above this altitude the cruise strategy is used for level, high-speed flight. The gap between min and max must exceed 134 blocks to avoid rapid phase switching.",
   "config.elytraautopilot.advanced": "Advanced",
   "config.elytraautopilot.advanced.groundCheckTicks": "Ground Check Ticks",
   "config.elytraautopilot.advanced.groundCheckTicks.desc": "Ticks before checking for ground",
@@ -113,5 +120,8 @@
   "text.elytraautopilot.hud.autoLand": "Auto land : ",
   "text.elytraautopilot.hud.enabled": "Enabled",
   "text.elytraautopilot.hud.disabled": "Disabled",
-  "text.elytraautopilot.hud.landing": "Landing..."
+  "text.elytraautopilot.hud.landing": "Landing...",
+  "text.elytraautopilot.phase.climb": "Climb",
+  "text.elytraautopilot.phase.cruise": "Cruise",
+  "text.elytraautopilot.hud.flightPhase": "Flight Phase: %s"
 }

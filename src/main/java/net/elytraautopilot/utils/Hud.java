@@ -1,6 +1,7 @@
 package net.elytraautopilot.utils;
 
 import net.elytraautopilot.config.ModConfig;
+import net.elytraautopilot.strategy.FlightPhase;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -29,6 +30,10 @@ public class Hud {
     private static double cycleETA = 0.0;
     private static boolean cycleInitialized = false;
     private static int cycleCompletedCount = 0;
+
+    // Strategy-mode cycle tracking
+    private static FlightPhase previousStrategyPhase = null;
+    private static int previousStrategyTick = 0;
 
     public static void tick() {
         _tick++;
@@ -62,28 +67,60 @@ public class Hud {
                 cycleHorizontalVelocitySum += currentVelocityHorizontal;
                 cycleSampleCount++;
 
-                if (previousIsDescending && !isDescending && cycleSampleCount > 0) {
-                    // Dive→Climb transition: one complete cycle finished
-                    displayCycleAvgVelocity = cycleVelocitySum / cycleSampleCount;
-                    displayCycleAvgHorizontalVelocity = cycleHorizontalVelocitySum / cycleSampleCount;
-                    cycleInitialized = true;
-                    cycleCompletedCount++;
-                    if (displayCycleAvgHorizontalVelocity != 0 && cycleCompletedCount >= 2) {
-                        cycleETA = distance / (displayCycleAvgHorizontalVelocity * 20);
-                    } else {
-                        cycleETA = 0.0;
+                if (strategyActive) {
+                    // Strategy mode: detect cycle completion by waveform tick wrap
+                    int currentStrategyTick = strategyPhase == FlightPhase.CLIMB ? climbTick : cruiseTick;
+
+                    if (previousStrategyPhase != strategyPhase) {
+                        // Phase switched or first sample — start a fresh cycle
+                        cycleVelocitySum = currentVelocity;
+                        cycleHorizontalVelocitySum = currentVelocityHorizontal;
+                        cycleSampleCount = 1;
+                    } else if (currentStrategyTick < previousStrategyTick && cycleSampleCount > 0) {
+                        // Tick wrapped around — one complete waveform cycle finished
+                        displayCycleAvgVelocity = cycleVelocitySum / cycleSampleCount;
+                        displayCycleAvgHorizontalVelocity = cycleHorizontalVelocitySum / cycleSampleCount;
+                        cycleInitialized = true;
+                        cycleCompletedCount++;
+                        if (displayCycleAvgHorizontalVelocity != 0 && cycleCompletedCount >= 2) {
+                            cycleETA = distance / (displayCycleAvgHorizontalVelocity * 20);
+                        } else {
+                            cycleETA = 0.0;
+                        }
+                        cycleVelocitySum = 0.0;
+                        cycleHorizontalVelocitySum = 0.0;
+                        cycleSampleCount = 0;
                     }
-                    cycleVelocitySum = 0.0;
-                    cycleHorizontalVelocitySum = 0.0;
-                    cycleSampleCount = 0;
+                    previousStrategyPhase = strategyPhase;
+                    previousStrategyTick = currentStrategyTick;
+                } else {
+                    // Classic mode: detect cycle completion by dive→climb transition
+                    previousStrategyPhase = null;
+                    if (previousIsDescending && !isDescending && cycleSampleCount > 0) {
+                        // Dive→Climb transition: one complete cycle finished
+                        displayCycleAvgVelocity = cycleVelocitySum / cycleSampleCount;
+                        displayCycleAvgHorizontalVelocity = cycleHorizontalVelocitySum / cycleSampleCount;
+                        cycleInitialized = true;
+                        cycleCompletedCount++;
+                        if (displayCycleAvgHorizontalVelocity != 0 && cycleCompletedCount >= 2) {
+                            cycleETA = distance / (displayCycleAvgHorizontalVelocity * 20);
+                        } else {
+                            cycleETA = 0.0;
+                        }
+                        cycleVelocitySum = 0.0;
+                        cycleHorizontalVelocitySum = 0.0;
+                        cycleSampleCount = 0;
+                    }
+                    previousIsDescending = isDescending;
                 }
-                previousIsDescending = isDescending;
             } else {
                 // Abort partial cycle when leaving normal cruising state
                 cycleVelocitySum = 0.0;
                 cycleHorizontalVelocitySum = 0.0;
                 cycleSampleCount = 0;
                 previousIsDescending = false;
+                previousStrategyPhase = null;
+                previousStrategyTick = 0;
                 cycleETA = 0.0;
                 cycleInitialized = false;
                 cycleCompletedCount = 0;
@@ -178,6 +215,14 @@ public class Hud {
 
             // Fly-to / landing lines (you can also gate these with new config flags if you
             // like)
+            if (ModConfig.INSTANCE.strategyMode && autoFlight && !isLanding && !forceLand) {
+                lines.add(
+                        Component
+                                .translatable("text.elytraautopilot.hud.flightPhase",
+                                        Component.translatable(strategyPhase.translationKey()))
+                                .withStyle(ChatFormatting.GOLD));
+            }
+
             if (isflytoActive && !forceLand) {
                 if (ModConfig.INSTANCE.showFlyTo) {
                     lines.add(Component.translatable("text.elytraautopilot.flyto", argXpos, argZpos)
@@ -233,5 +278,7 @@ public class Hud {
         cycleInitialized = false;
         cycleCompletedCount = 0;
         previousIsDescending = false;
+        previousStrategyPhase = null;
+        previousStrategyTick = 0;
     }
 }

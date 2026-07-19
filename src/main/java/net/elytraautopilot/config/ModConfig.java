@@ -73,6 +73,13 @@ public class ModConfig {
     public static final boolean elytraAutoSwapDefault = false;
     public static final boolean cameraDecoupledDefault = false;
 
+    // Strategy mode defaults
+    public static final boolean strategyModeDefault = false;
+    public static final int cruiseAltitudeMinDefault = 320;
+    public static final int cruiseAltitudeMaxDefault = 480;
+    public static final int maxCruiseAltitude = 10000;
+    public static final int minCruiseAltitude = 0;
+
     // Advanced defaults
     public static final int groundCheckTicksDefault = 1;
     public static final double pullUpAngleDefault = -46.63;
@@ -119,6 +126,11 @@ public class ModConfig {
     public boolean emergencyLand = emergencyLandDefault;
     public boolean elytraAutoSwap = elytraAutoSwapDefault;
     public boolean cameraDecoupled = cameraDecoupledDefault;
+
+    // Strategy mode values
+    public boolean strategyMode = strategyModeDefault;
+    public int cruiseAltitudeMin = cruiseAltitudeMinDefault;
+    public int cruiseAltitudeMax = cruiseAltitudeMaxDefault;
 
     // Advanced values
     public int groundCheckTicks = groundCheckTicksDefault;
@@ -369,6 +381,33 @@ public class ModConfig {
                                 .binding(cameraDecoupledDefault, () -> ModConfig.INSTANCE.cameraDecoupled,
                                         newVal -> ModConfig.INSTANCE.cameraDecoupled = newVal)
                                 .controller(BooleanControllerBuilder::create).build())
+                        .build())
+                .category(ConfigCategory.createBuilder().name(Component.translatable("config.elytraautopilot.strategy"))
+                        .option(Option.<Boolean>createBuilder()
+                                .name(Component.translatable("config.elytraautopilot.strategy.strategyMode"))
+                                .description(OptionDescription.of(
+                                        Component.translatable("config.elytraautopilot.strategy.strategyMode.desc")))
+                                .binding(strategyModeDefault, () -> ModConfig.INSTANCE.strategyMode,
+                                        newVal -> ModConfig.INSTANCE.strategyMode = newVal)
+                                .controller(BooleanControllerBuilder::create).build())
+                        .option(Option.<Integer>createBuilder()
+                                .name(Component.translatable("config.elytraautopilot.strategy.cruiseAltitudeMin"))
+                                .description(OptionDescription.of(Component
+                                        .translatable("config.elytraautopilot.strategy.cruiseAltitudeMin.desc")))
+                                .binding(cruiseAltitudeMinDefault, () -> ModConfig.INSTANCE.cruiseAltitudeMin,
+                                        newVal -> ModConfig.INSTANCE.cruiseAltitudeMin = newVal)
+                                .controller(opt -> IntegerFieldControllerBuilder.create(opt).min(minCruiseAltitude)
+                                        .max(maxCruiseAltitude))
+                                .build())
+                        .option(Option.<Integer>createBuilder()
+                                .name(Component.translatable("config.elytraautopilot.strategy.cruiseAltitudeMax"))
+                                .description(OptionDescription.of(Component
+                                        .translatable("config.elytraautopilot.strategy.cruiseAltitudeMax.desc")))
+                                .binding(cruiseAltitudeMaxDefault, () -> ModConfig.INSTANCE.cruiseAltitudeMax,
+                                        newVal -> ModConfig.INSTANCE.cruiseAltitudeMax = newVal)
+                                .controller(opt -> IntegerFieldControllerBuilder.create(opt).min(minCruiseAltitude)
+                                        .max(maxCruiseAltitude))
+                                .build())
                         .build())
                 .category(ConfigCategory.createBuilder().name(Component.translatable("config.elytraautopilot.advanced"))
                         .option(Option.<Integer>createBuilder()
