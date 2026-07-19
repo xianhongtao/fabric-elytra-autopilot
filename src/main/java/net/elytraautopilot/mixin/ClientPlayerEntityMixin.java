@@ -26,7 +26,8 @@ public class ClientPlayerEntityMixin {
         // Injects when the elytra should be deployed
         if (canGlide(player)) { // &&
             // [Future] Replace with an event that fires before elytra take off.
-            equipElytra(player);
+            if (!equipElytra(player))
+                return; // No Elytra available in inventory, abort takeoff
             // Set client-side flying flag AND send packet to server
             // (Player.startFallFlying only sets the client flag, does NOT send the packet)
             player.startFallFlying();
