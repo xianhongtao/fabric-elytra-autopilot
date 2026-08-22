@@ -539,8 +539,8 @@ public class ElytraAutoPilot implements ClientModInitializer {
         if (takeoffCooldown > 0) {
             FlightInputController.requestTakeoffJump();
         }
-        if (autoFlight && !onTakeoff && !isLanding && !forceLand && !strategyActive
-                && ModConfig.INSTANCE.poweredFlight && currentVelocity < 1.25f) {
+        if (autoFlight && !onTakeoff && !isLanding && !forceLand && !strategyActive && ModConfig.INSTANCE.poweredFlight
+                && currentVelocity < 1.25f) {
             FlightInputController.requestPoweredFlight();
         }
         FlightInputController.tick(minecraftClient);
